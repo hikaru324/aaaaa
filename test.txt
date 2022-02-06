@@ -1,0 +1,527 @@
+''// 全体管理表の定義
+Public ZENTAI_PATH As String '// フルパス
+Private Const WsZentai As String = "全体管理Top" '// 対象シート名
+Private Const StRow_Zentai As Long = 3
+Private Const BinderCol_Zentai As Long = 3 '// バインダNo(C列)
+Private Const MaesagyoCol_Zentai As Long = 4 '// 前作業完了日(D列)
+Private Const ScanCol_Zentai As Long = 5 '// スキャン完了日(E列)
+Private Const CheckCol_Zentai As Long = 6 '// チェック完了日(F列)
+
+'// スキャンシート(Master)の定義
+Public SCANTEMP_PATH As String
+Public SCANOUT_PATH As String
+Public SCANOUT_FILE As String
+Private Const StRow_WsMaster As Long = 4
+Private Const BinderCol_WsMaster As Long = 6 '// バインダNo(F列)
+Private Const MaesyoriCol_WsMaster As Long = 7 '// 前処理終了日(G列)
+Private Const CreateFolCol_WsMaster As Long = 8 '// バインダフォルダ作成日(H列)
+Private Const CreateFileCol_WsMaster As Long = 9 '// エクセル作成日(I列)
+
+Private Const st1End As Long = 10 '' //最終更新日(スキャン)
+Private Const ScanCol_WsMaster As Long = 11 '// スキャン終了日(G列)
+Private Const CreateFolCol2_WsMaster As Long = 12 '// バインダフォルダ作成日(H列)
+Private Const CreateFileCol2_WsMaster As Long = 13 '// エクセル作成日(I列)
+Private Const CheckCol_WsMaster As Long = 14 '// チェック終了日(N列)
+Private Const TantoCol_WsMaster As Long = 15 '// 確認担当(O列)
+Private Const LeaderCol_WsMaster As Long = 16 '// リーダー確認(P列)
+Private Const st2End As Long = 17 '' // 最終更新日(Q列)
+
+'//画像チェックシートの定義
+Public CHECKIN_PATH As String
+Public CHECKIN_FILE As String
+Public CHECKOUT_PATH As String
+Public CHECKOUT_FILE As String
+Private Const StRow_WsCheck As Long = 4
+Private Const BinderCol_WsCheck As Long = 3
+Private Const PageCol_WsCheck As Long = 4
+Private Const KomokuCol_WsCheck As Long = 5
+Private Const CommentCol_WsCheck As Long = 6
+'// リーダー欄
+Private Const PageCol2_WsCheck As Long = 7
+Private Const KomokuCol2_WsCheck As Long = 8
+Private Const CommentCol2_WsCheck As Long = 9
+Private Const CheckFla_WsCheck As Long = 10
+
+'// Temp画像チェックシートの定義
+Public CHECKTEMP_PATH As String
+Private Const WsCheck_Temp As String = "画像チェック"
+Private Const KeyCol_CheckTemp As Long = 5
+Private Const StRow_CheckTemp As Long = 3
+Private Const PageCol_CheckTemp As Long = 4
+Private Const KomokuCol_CheckTemp As Long = 5
+Private Const CommentCol_CheckTemp As Long = 6
+
+'// Temp画像チェックシート(リーダー用)の定義
+Private Const WsCheck_Temp2 As String = "画像チェック"
+Private Const StRow_CheckTemp2 As Long = 3
+Private Const BinderCol_CheckTemp2 As Long = 3
+Private Const PageCol_CheckTemp2 As Long = 4
+Private Const KomokuCol_CheckTemp2 As Long = 5
+Private Const CommentCol_CheckTemp2 As Long = 6
+'// リーダー欄
+Private Const PageCol2_CheckTemp2 As Long = 7
+Private Const KomokuCol2_CheckTemp2 As Long = 8
+Private Const CommentCol2_CheckTemp2 As Long = 9
+Private Const CheckFla_CheckTemp2 As Long = 10
+
+
+'// 指定番号シートの定義
+Private Const StRow_WsTargetNo As Long = 2
+Private Const Key_WsTargetNo As Long = 1 '// ユニークキー(A列)
+Private Const BinderCol_WsTargetNo As Long = 2 '// バインダNo(B列)
+
+Option Explicit
+
+Private Sub Conf()
+
+'// 全体管理表の定義
+ZENTAI_PATH = WsConf.Range("D3")
+
+'// スキャンシートの定義
+SCANTEMP_PATH = WsConf.Range("D6")
+SCANOUT_PATH = WsConf.Range("D7")
+SCANOUT_FILE = WsConf.Range("D8")
+
+'//画像チェックシートの定義
+CHECKTEMP_PATH = WsConf.Range("D11")
+CHECKOUT_PATH = WsConf.Range("D12")
+CHECKOUT_FILE = WsConf.Range("D13")
+
+End Sub
+
+Function Dic登録(ByVal Ws, ByVal StRow, ByVal KeyCol, ByVal ItemCol)
+
+Dim i As Long
+Dim Dic As Object
+Dim Key, Item As String
+
+    Set Dic = CreateObject("Scripting.Dictionary")
+
+    For i = StRow To Ws.Cells(Rows.Count, KeyCol).End(xlUp).Row
+        Key = Ws.Cells(i, KeyCol)
+        Item = Ws.Cells(i, ItemCol)
+        If Dic.Exists(Key) = False Then
+            '// Dicに追加
+            Dic.Add Key, Item
+        End If
+    Next i
+    
+    Set Dic登録 = Dic
+    
+End Function
+
+Function シートの存在確認(ByVal WB As Workbook, ByVal name As String, ByVal BinderNo)
+
+    Dim Ws As Worksheet
+    For Each Ws In WB.Sheets
+        If Ws.name = name Then
+            ' 存在する
+            シートの存在確認 = True
+            Exit Function
+        End If
+    Next
+    
+    ' 存在しない
+    シートの存在確認 = False
+    MsgBox "シートが存在しません。" & vbCrLf & "対象：" & BinderNo
+    End
+    
+End Function
+
+Function 新規ブックを開く(ByVal OpenBookPath, ByVal Read)
+
+Dim Files As String
+Dim OpenBook
+
+    Files = Dir(OpenBookPath)
+    If Files <> "" Then
+        If Read = 1 Then
+            Set OpenBook = Workbooks.Open(OpenBookPath, ReadOnly:=True)
+        Else
+            Set OpenBook = Workbooks.Open(OpenBookPath, ReadOnly:=False)
+        End If
+    Else
+        MsgBox "該当ファイルが存在しません" & vbCrLf & _
+                    "参照先: " & OpenBookPath
+        End
+    End If
+    
+    Set 新規ブックを開く = OpenBook
+    
+End Function
+
+
+Sub スキャンシートの配布()
+
+'// 1. 全体管理のデータ登録処理用
+Dim WB_Zentai As Workbook
+Dim Ws_Zentai As Worksheet
+Dim Is_WsZentai As Boolean
+Dim ZentaiDic As Object
+Dim i As Long
+
+'// 2. スキャンシートの配布処理用
+Dim TargetDic As Object
+Dim fso As Object
+Dim BinderNo As String
+Dim Folder, ExcelFile As String
+Dim j As Long
+
+    Call Conf
+    
+    '// 1. 全体管理のデータ登録処理
+        Set WB_Zentai = 新規ブックを開く(ZENTAI_PATH)
+        Is_WsZentai = シートの存在確認(WB_Zentai, WBWsZentai, BinderNo)
+        
+        If Is_WsZentai = True Then
+            Set Ws_Zentai = WB_Zentai.Worksheets(WsZentai)
+            Set ZentaiDic = Dic登録(Ws_Zentai, StRow_Zentai, BinderCol_Zentai, MaesagyoCol_Zentai)
+            
+        ' //全体管理のシート名が不一致
+        Else
+            MsgBox WB_Zentai.name & "にシート名：" & WsZentai & " が存在しませんでした。" & _
+                            vbCrLf & "処理を中断します。"
+            End
+        End If
+    
+    WB_Zentai.Close
+    
+    '// 2. スキャンシートの配布処理
+        '// 指定番号の取り込み
+        If WsTargetNo.Cells(StRow_WsTargetNo, BinderCol_WsTargetNo) = "" Then
+            MsgBox "指定番号シートが空です。" & vbCrLf & "処理を中断します。"
+            End
+        End If
+        
+        Set TargetDic = Dic登録(WsTargetNo, StRow_WsTargetNo, Key_WsTargetNo, BinderCol_WsTargetNo)
+        
+        '// 指定番号シートのループ
+        For i = StRow_WsTargetNo To WsTargetNo.Cells(Rows.Count, BinderCol_WsTargetNo).End(xlUp).Row
+            
+            '// 前作業の終了日を転記
+            BinderNo = WsTargetNo.Cells(i, BinderCol_WsTargetNo)
+            
+            '// MasterListのループ
+            For j = StRow_WsMaster To WsMaster.Cells(Rows.Count, BinderCol_WsMaster).End(xlUp).Row
+            
+                If WsMaster.Cells(j, BinderCol_WsMaster) = BinderNo Then
+                    
+                    If ZentaiDic.Item(BinderNo) = True Then
+                        WsMaster.Cells(j, MaesyoriCol_WsMaster) = ZentaiDic.Item(BinderNo)
+                        
+                        '// 実際のバインダフォルダの作成
+                        Set fso = CreateObject("Scripting.FileSystemObject")
+                        Folder = SCANOUT_PATH & "\" & BinderNo
+                        
+                        '// フォルダがなかったら
+                        If fso.FolderExists(Folder) = False Then
+                            MkDir Folder
+                            '// Masterに追記
+                            WsMaster.Cells(j, CreateFolCol_WsMaster) = Date
+                            
+                            '// エクセルファイルがなかったら
+                            ExcelFile = Folder & "\" & SCANOUT_FILE
+                            If fso.FileExists(ExcelFile) = False Then
+                                '// Tempのコピー
+                                fso.CopyFile Source:=SCANTEMP_PATH, Destination:=ExcelFile, overwritefiles:=False
+                                '// Masterに追記
+                                WsMaster.Cells(j, CreateFileCol_WsMaster) = Date
+                            End If
+                        End If
+                    
+                    End If
+                End If
+            Next j
+        Next i
+        
+        MsgBox "配布完了"
+        
+        Call 最終更新のチェック(MaesyoriCol_WsMaster, CreateFolCol_WsMaster, CreateFileCol_WsMaster, st1End)
+End Sub
+
+Sub チェックシート配布()
+
+'// 1. 全体管理のデータ登録処理用
+Dim WB_Zentai As Workbook
+Dim Ws_Zentai As Worksheet
+Dim Is_WsZentai As Boolean
+Dim ZentaiDic As Object
+Dim i As Long
+
+'// 2. 画像チェックシートの配布処理用
+Dim TargetDic As Object
+Dim fso As Object
+Dim BinderNo, BinderNo2 As String
+Dim Folder, ExcelFile As String
+Dim j As Long
+    
+    Call Conf
+    
+    '// 1. 全体管理のデータ登録処理
+    Set WB_Zentai = 新規ブックを開く(ZENTAI_PATH, 1)
+    Is_WsZentai = シートの存在確認(WB_Zentai, WsZentai, BinderNo)
+        
+    If Is_WsZentai = True Then
+        Set Ws_Zentai = WB_Zentai.Worksheets(WsZentai)
+        Set ZentaiDic = Dic登録(Ws_Zentai, StRow_Zentai, BinderCol_Zentai, ScanCol_Zentai)
+            
+    ' //全体管理のシート名が不一致
+    Else
+        MsgBox WB_Zentai.name & "にシート名：" & WsZentai & " が存在しませんでした。" & _
+                        vbCrLf & "処理を中断します。"
+        End
+    End If
+    
+    WB_Zentai.Close
+    
+    '// 2. スキャンシートの配布処理
+    '// 指定番号の取り込み
+    If WsTargetNo.Cells(StRow_WsTargetNo, BinderCol_WsTargetNo) = "" Then
+        MsgBox "指定番号シートが空です。" & vbCrLf & "処理を中断します。"
+        End
+    End If
+        
+    Set TargetDic = Dic登録(WsTargetNo, StRow_WsTargetNo, Key_WsTargetNo, BinderCol_WsTargetNo)
+        
+    '// 指定番号シートのループ
+    For i = StRow_WsTargetNo To WsTargetNo.Cells(Rows.Count, BinderCol_WsTargetNo).End(xlUp).Row
+            
+        BinderNo = WsTargetNo.Cells(i, BinderCol_WsTargetNo)
+            
+        '// MasterListのループ
+        For j = StRow_WsMaster To WsMaster.Cells(Rows.Count, BinderCol_WsMaster).End(xlUp).Row
+            
+            '// step1の条件クリア
+            If WsMaster.Cells(j, MaesyoriCol_WsMaster) <> "" Then
+                If WsMaster.Cells(j, BinderCol_WsMaster) = BinderNo Then
+                        
+                    BinderNo2 = WsMaster.Cells(j, BinderCol_WsMaster)
+                    '// 全体管理 スキャン終了日が記載されていれば
+                    If ZentaiDic.Item(BinderNo2) <> "" Then
+                        WsMaster.Cells(j, ScanCol_WsMaster) = ZentaiDic.Item(BinderNo)
+                            
+                            '// 実際のバインダフォルダの作成
+                            Set fso = CreateObject("Scripting.FileSystemObject")
+                            Folder = CHECKOUT_PATH & "\" & BinderNo
+                            
+                            '// フォルダがなかったら
+                            If fso.FolderExists(Folder) = False Then
+                                MkDir Folder
+                                '// Masterに追記
+                                WsMaster.Cells(j, CreateFolCol2_WsMaster) = Date
+                                
+                                '// エクセルファイルがなかったら
+                                ExcelFile = Folder & "\" & CHECKOUT_FILE
+                                If fso.FileExists(ExcelFile) = False Then
+                                    '// Tempのコピー
+                                    fso.CopyFile Source:=CHECKTEMP_PATH, Destination:=ExcelFile, overwritefiles:=False
+                                    '// Masterに追記
+                                    WsMaster.Cells(j, CreateFileCol2_WsMaster) = Date
+                                End If
+                            End If
+                        
+                        End If
+                    End If '// step1の条件クリア
+                End If
+            Next j
+        Next i
+        
+        MsgBox "配布完了"
+    
+End Sub
+
+Sub チェックシートのインポート()
+
+Dim fso, ZentaiDic As Object
+
+Dim i, s, ss As Long
+Dim BinderNo, Folder, ExcelFile As String
+Dim WB_Zentai, WB_Target As Workbook
+Dim Ws_Zentai, Ws_Target As Worksheet
+Dim Is_WsZentai, Is_WsTarget
+
+    Call Conf
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    '// 1. 全体管理のデータ登録処理
+    Set WB_Zentai = 新規ブックを開く(ZENTAI_PATH, 1)
+    Is_WsZentai = シートの存在確認(WB_Zentai, WsZentai, WsZentai)
+        
+    If Is_WsZentai = True Then
+        Set Ws_Zentai = WB_Zentai.Worksheets(WsZentai)
+        Set ZentaiDic = Dic登録(Ws_Zentai, StRow_Zentai, BinderCol_Zentai, CheckCol_Zentai)
+            
+    ' //全体管理のシート名が不一致
+    Else
+        MsgBox WB_Zentai.name & "にシート名：" & WsZentai & " が存在しませんでした。" & _
+                        vbCrLf & "処理を中断します。"
+        End
+    End If
+    
+    WB_Zentai.Close
+    
+    
+    ss = StRow_WsCheck '// 画像チェックシートの開始行
+    '// Masterのループ
+    For i = StRow_WsMaster To WsMaster.Cells(Rows.Count, BinderCol_WsMaster).End(xlUp).Row
+        BinderNo = WsMaster.Cells(i, BinderCol_WsMaster)
+        
+        '// 全体管理の終了日に記載があれば
+        If ZentaiDic.Item(BinderNo) <> "" Then
+            WsMaster.Cells(i, CheckCol_WsMaster) = Date
+            If WsMaster.Cells(i, CreateFileCol_WsMaster) <> "" Then
+                '// バインダのフォルダがあるか検索
+                Folder = CHECKOUT_PATH & "\" & BinderNo
+                If fso.FolderExists(Folder) = True Then
+                    '// エクセルファイルがあるかの検索
+                    ExcelFile = Folder & "\" & CHECKOUT_FILE
+                    If fso.FileExists(ExcelFile) = True Then
+                        Set WB_Target = 新規ブックを開く(ExcelFile, 1)
+                        Is_WsTarget = シートの存在確認(WB_Target, WsCheck_Temp, BinderNo)
+                        
+                        With WB_Target.Worksheets(WsCheck_Temp)
+                            '// 画像チェックシートの完了フラグ
+                            If .Cells(StRow_CheckTemp, KomokuCol_CheckTemp) <> "" Then
+                                
+                                WsMaster.Cells(i, TantoCol_WsMaster) = "ユーザー"
+                                For s = StRow_CheckTemp To .Cells(Rows.Count, KeyCol_CheckTemp).End(xlUp).Row
+                                    '// 転記処理
+                                    WsCheck.Cells(ss, BinderCol_WsCheck) = BinderNo
+                                    WsCheck.Cells(ss, PageCol_WsCheck) = .Cells(s, PageCol_CheckTemp)
+                                    WsCheck.Cells(ss, KomokuCol_WsCheck) = .Cells(s, KomokuCol_CheckTemp)
+                                    WsCheck.Cells(ss, CommentCol_WsCheck) = .Cells(s, CommentCol_CheckTemp)
+                                    ss = ss + 1 '// 画像チェックシートの行数+1
+                                Next s
+                            End If
+                        End With
+                        
+                        WB_Target.Close
+                    End If
+                End If
+                
+            End If
+        End If
+    Next i
+    
+Call リーダー確認へ
+
+End Sub
+
+Sub リーダー確認へ()
+
+Dim fso As Object
+Dim WB As Workbook
+Dim Is_WsTarget As Boolean
+Dim i, s As Long
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    '// 個人ファイル存在確認
+    '----------------未定義------------------(もしユーザーのファイルがなければ、新しくTempから作成)
+    '---- 日付付きファイル新規作成
+    
+    Set WB = 新規ブックを開く("C:\Users\PIKA\Desktop\テスト環境\ターゲット\リーダー確認\画像チェックシート_リーダー確認用.xlsx", 0)
+    Is_WsTarget = シートの存在確認(WB, WsCheck_Temp2, WB.name)
+    
+    s = StRow_CheckTemp2
+    For i = StRow_WsCheck To WsCheck.Cells(Rows.Count, BinderCol_WsCheck).End(xlUp).Row
+        With WB.Worksheets(WsCheck_Temp2)
+            
+            .Cells(s, BinderCol_CheckTemp2) = WsCheck.Cells(i, BinderCol_WsCheck)
+            .Cells(s, PageCol_CheckTemp2) = WsCheck.Cells(i, PageCol_WsCheck)
+            .Cells(s, KomokuCol_CheckTemp2) = WsCheck.Cells(i, KomokuCol_WsCheck)
+            .Cells(s, CommentCol_CheckTemp2) = WsCheck.Cells(i, CommentCol_WsCheck)
+            s = s + 1
+        End With
+    Next i
+    
+End Sub
+
+Sub リーダー確認の取り込み()
+
+Dim fso, Dic As Object
+Dim i, s As Long
+Dim WB As Workbook
+Dim Is_WsTarget As String
+Dim BinderNo, CheckFla
+
+
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    '---- ユーザー分岐
+    '--- 未定義
+    Set WB = 新規ブックを開く("C:\Users\PIKA\Desktop\テスト環境\ターゲット\リーダー確認\画像チェックシート_リーダー確認用.xlsx", 1)
+    Is_WsTarget = シートの存在確認(WB, WsCheck_Temp2, WB.name)
+
+    s = StRow_WsCheck
+    With WB.Worksheets(WsCheck_Temp2)
+        For i = StRow_CheckTemp2 To .Cells(Rows.Count, BinderCol_CheckTemp2).End(xlUp).Row
+            WsCheck.Cells(s, BinderCol_WsCheck) = .Cells(i, BinderCol_CheckTemp2)
+            WsCheck.Cells(s, PageCol_WsCheck) = .Cells(i, PageCol_CheckTemp2)
+            WsCheck.Cells(s, KomokuCol_WsCheck) = .Cells(i, KomokuCol_CheckTemp2)
+            WsCheck.Cells(s, CommentCol_WsCheck) = .Cells(i, CommentCol_CheckTemp2)
+            '// リーダー欄
+            WsCheck.Cells(s, PageCol2_WsCheck) = .Cells(i, PageCol2_CheckTemp2)
+            WsCheck.Cells(s, KomokuCol2_WsCheck) = .Cells(i, KomokuCol2_CheckTemp2)
+            WsCheck.Cells(s, CommentCol2_WsCheck) = .Cells(i, CommentCol2_CheckTemp2)
+            WsCheck.Cells(s, CheckFla_WsCheck) = .Cells(i, CheckFla_CheckTemp2)
+            s = s + 1
+        Next i
+    End With
+    
+    WB.Close
+    
+    Set Dic = CreateObject("Scripting.Dictionary")
+    For i = StRow_WsCheck To WsCheck.Cells(Rows.Count, BinderCol_WsCheck).End(xlUp).Row
+        '//初期値
+        BinderNo = WsCheck.Cells(i, BinderCol_WsCheck)
+        Do While WsCheck.Cells(i, BinderCol_WsCheck) = BinderNo
+            If WsCheck.Cells(i, CheckFla_WsCheck) = "" Then CheckFla = 1
+            i = i + 1
+        Loop
+        
+        If CheckFla <> 1 Then
+            i = i - 1
+            Dic.Add BinderNo, i
+        End If
+    Next i
+    
+    '// Masterへの反映
+    For i = StRow_WsMaster To WsMaster.Cells(Rows.Count, BinderCol_WsMaster).End(xlUp).Row
+        BinderNo = WsMaster.Cells(i, BinderCol_WsMaster)
+        If Dic.Exists(BinderNo) = True Then
+            WsMaster.Cells(i, LeaderCol_WsMaster) = "確認済み"
+            WsMaster.Cells(i, st2End) = Date
+        Else
+            '// 対象に含まれない場合
+            If WsMaster.Cells(i, CheckCol_WsMaster) <> "" Then
+                WsMaster.Cells(i, TantoCol_WsMaster) = "-"
+                WsMaster.Cells(i, LeaderCol_WsMaster) = "-"
+                WsMaster.Cells(i, st2End) = Date
+            End If
+        End If
+    Next i
+    
+End Sub
+
+Sub 最終更新のチェック(stCol, endCol, EndData)
+
+    Dim i, j, fla As Long
+    
+    For i = StRow_WsMaster To WsMaster.Cells(Rows.Count, BinderCol_WsMaster).End(xlUp).Row
+        For j = stCol To endCol
+            If WsMaster.Cells(i, EndData) = "" Then
+                If WsMaster.Cells(i, j) <> "" Then
+                    fla = 1
+                Else
+                    fla = 0
+                End If
+            End If
+        Next j
+        
+        If fla = 1 Then
+            WsMaster.Cells(i, EndData) = Date
+        End If
+    Next i
+    
+End Sub
