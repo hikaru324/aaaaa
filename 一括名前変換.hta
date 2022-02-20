@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<script language="VBScript">
+
+Sub GetPath()
+
+'Dim objFSO, objWshShell
+'Dim Folder as string
+
+'Dim data As Variant
+
+  Folder = document.form1.Path1.value
+  Out = document.form1.Out.value
+  Cnt = document.form1.Cnt.value
+
+  Set oCmd = CreateObject("WScript.Shell")
+
+  msgbox StrCmd
+  oCmd.Run "C:\Users\PIKA\Desktop\テスト環境\hta関連\サブのリネーム\a.bat " & Folder & " " & Out & " " & Cnt
+
+End Sub
+
+</script>
+
+<body>
+
+  <table name="table1">
+  <form name="form1">
+    <tr><td><p>参照先：<input type="text" name="Path1"></p></td></tr>
+    <tr><td><p>発行先：<input type="text" name="Out"></p></td></tr>
+    <tr><td><p>初期数：<input type="text" name="Cnt"></p></td></tr>
+  </form>
+
+    <tr><td>
+      <form>
+        <input type="button" name="button" value="click" onClick=GetPath() />
+      </form>
+    </td></tr>
+
+  </table>
+
+</body>
+</html>
