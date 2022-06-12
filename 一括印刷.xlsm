@@ -1,0 +1,141 @@
+'2022/06 VBAソース
+'------------------------------------------------------------------------------------
+'動作用途　：30行分の書式にリストから1ページ(30行分)ずつ転記して印刷させる
+'キーワード：連続印刷,一括印刷
+'Rev：0
+'------------------------------------------------------------------------------------
+
+'【sheet1(Form)】
+Dim Val
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+
+    If Target.Address(False, False) = "E2:F3" Then
+        Val = Range("E2")
+    End If
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    '// 対象セルの座標を表示
+    If Target.Address(False, False) = "E2" Then
+        If Target.Value <> 0 Then
+            LoadAns = LoadPage()
+            If LoadAns = False Then Target.Value = Val
+        End If
+    End If
+    
+End Sub
+
+
+'【Modele1】
+Sub print_AllPage()
+    Set Wb_Form = ThisWorkbook.Worksheets("Form")
+    Set Wb_inputData = ThisWorkbook.Worksheets("inputData")
+    
+    For i = 3 To Wb_inputData.Cells(Rows.Count, "A").End(xlUp).Row
+        If Wb_inputData.Cells(i, 4) <> Wb_inputData.Cells(i - 1, 4) Then
+            Wb_Form.Range("E2") = Wb_inputData.Cells(i, 4)
+            MsgBox Wb_Form.Range("C2") & "を印刷します。"
+        End If
+    Next i
+End Sub
+
+Function LoadPage()
+
+    'ブックオブジェクトの定義
+    Set Wb_Form = ThisWorkbook.Worksheets("Form")
+    Set Wb_inputData = ThisWorkbook.Worksheets("inputData")
+    
+    'ページ指定番号の取得
+    PageNo = Wb_Form.Range("E2")
+    
+    With Wb_inputData
+        'inputDataシートの開始・終了行の取得
+        stRow = 3
+        endRow = .Cells(Rows.Count, "A").End(xlUp).Row
+    
+        '該当ページの個数を確認
+        Dim searchRange As Range
+        Set searchRange = .Range(.Cells(stRow, 4), .Cells(endRow, 4))
+        resultCnt = 0
+        resultCnt = WorksheetFunction.CountIf(searchRange, PageNo)
+        
+        Select Case resultCnt
+        Case 0
+        '該当ページが存在しない場合
+            MsgBox "指定されたページ番号が存在しません。処理を中断します。"
+            GoTo EOF
+        Case Is > 30
+        '該当ページが30行を超える場合場合
+            MsgBox "1ページに指定できるのは30行までです。処理を中断します。" & vbCrLf _
+                    & "発生箇所：" & i & "行目"
+            GoTo EOF
+        End Select
+        
+        'Formシートのテーブル初期化(前回入力分をクリア)
+        Wb_Form.Range(Wb_Form.Cells(4, 1), Wb_Form.Cells(33, 3)).ClearContents
+
+        '指定ページ分のデータをFormシートに転記
+        fRow = 4
+        For i = stRow To endRow
+            If Wb_inputData.Range("D" & i) = PageNo Then
+                Wb_Form.Range("A" & fRow) = .Range("A" & i)
+                Wb_Form.Range("B" & fRow) = .Range("B" & i)
+                Wb_Form.Range("C" & fRow) = .Range("C" & i)
+                fRow = fRow + 1
+            End If
+        Next i
+    
+    End With
+
+    LoadPage = True
+    Exit Function
+EOF:
+    LoadPage = False
+    
+End Function
+
+Sub ページ割り振り()
+
+    With ThisWorkbook.Worksheets("inputData")
+        
+        'inputDataシートの開始・終了行の取得
+        stRow = 3
+        endRow = .Cells(Rows.Count, "A").End(xlUp).Row
+        
+        '全体のデータ個数を取得
+        CntRange = .Range(.Cells(stRow, 1), .Cells(endRow, 1))
+        AllCnt = WorksheetFunction.Count(CntRange)
+        
+        '全体からページ数を割り出す
+        pageCnt = AllCnt \ 30
+        '端数ページ内のデータ数
+        hasuCnt = AllCnt Mod 30
+        '端数ページが存在すれば,処理ページ数+1
+        If hasuCnt = 0 Then
+            hasuPageCnt = 0
+        Else
+            hasuPageCnt = 1
+        End If
+            
+        '入力処理
+        j = stRow
+        For Page = 1 To pageCnt + hasuPageCnt
+        
+            i = j
+            If Page = pageCnt + hasuPageCnt Then
+                '端数ページ(最終ページ)の場合
+                For j = i To i + hasuCnt - 1
+                    .Cells(j, 4) = Page
+                Next j
+            Else
+                '30で収まるページの処理
+                For j = i To i + 30 - 1
+                    .Cells(j, 4) = Page
+                Next j
+            End If
+            
+        Next Page
+        
+    End With
+    
+End Sub
