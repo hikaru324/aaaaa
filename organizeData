@@ -1,0 +1,57 @@
+
+
+Sub calc()
+
+    Dim NumbArray()
+
+    stNumb = 1
+    endNumb = 100000000
+    AllNumbCnt = endNumb - stNumb + 1
+    
+    'フォーム数
+    PainCnt = 1345
+    '全体ページ数の端数頁を求める
+    Remainder = AllNumbCnt Mod PainCnt
+    '分割数分の商を求める
+    Quotient = AllNumbCnt \ PainCnt
+    '必要ページ数
+    If Remainder = 0 Then
+        AllPage = Quotient
+    Else
+        AllPage = Quotient + 1
+    End If
+    
+    '枚数分の印刷処理を順次実行
+    For i = 1 To AllPage
+        If Remainder = 0 Then
+        '割り切れる場合（全てのフォームが埋まる場合）
+            For j = 0 To PainCnt - 1
+                Debug.Print j + 1 & "：" & i + (Quotient * j)
+            Next j
+
+        Else
+        '割り切れない場合（空白紙が出現する場合）
+            For j = 0 To PainCnt - 1
+                If AllNumbCnt >= i + (Quotient * j) + j Then
+                    Debug.Print j + 1 & "：" & i + (Quotient * j) + j
+                Else
+                    '指定ナンバーよりも大きければ, フォームを隠す
+                    Debug.Print j + 1 & "：0"
+                End If
+            Next j
+        End If
+    Next i
+    
+    Debug.Print "余りは：" & Remainder
+'    NumbArray = WorksheetFunction.Transpose(NumbArray)
+'
+'    For i = 1 To UBound(NumbArray)
+'        For j = 1 To PainCnt
+'            Debug.Print "ヘッダの値：" & NumbArray(i, 1)
+'            Debug.Print "フッターの値：" & NumbArray(i, 2)
+'            Debug.Print NumbArray(i, 3)
+'        Next j
+'    Next i
+    
+    
+End Sub
