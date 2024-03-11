@@ -1,0 +1,39 @@
+Sub CheckTextOutsidePrintArea()
+
+    Dim ws As Worksheet
+    Dim printArea As Range
+    Dim cell As Range
+    Dim searchString As String
+    Dim found As Boolean
+    
+    ' 対象のシートを指定
+    Set ws = ThisWorkbook.Sheets("Sheet1")
+    
+    ' 印刷範囲を取得
+    Set printArea = ws.PageSetup.PrintArea
+    
+    ' 検索する文字列を指定
+    searchString = "検索文字列"
+    
+    ' 初期化
+    found = False
+    
+    ' 印刷範囲外を検索
+    For Each cell In ws.UsedRange
+        If Intersect(cell, printArea) Is Nothing Then
+            ' 印刷範囲外のセルに検索文字列が存在するかチェック
+            If InStr(1, cell.Value, searchString, vbTextCompare) > 0 Then
+                found = True
+                Exit For
+            End If
+        End If
+    Next cell
+    
+    ' 結果を表示
+    If found Then
+        MsgBox "印刷範囲外に文字列が存在します。"
+    Else
+        MsgBox "印刷範囲外に文字列は存在しません。"
+    End If
+
+End Sub
